@@ -36,7 +36,6 @@ _, X_test, _, _ = train_test_split(
 # Converte X_test in un tensore PyTorch di tipo float32
 X_test_t = torch.tensor(X_test, dtype=torch.float32)
 
-
 # 2) Caricamento dei modelli già addestrati
 
 # Istanzia due reti MLP con lo stesso numero di feature in ingresso
@@ -67,34 +66,68 @@ baseline = torch.zeros((1, X.shape[1]))
 attrA = igA.attribute(X_test_t, baselines=baseline, n_steps=50).detach().numpy()
 attrB = igB.attribute(X_test_t, baselines=baseline, n_steps=50).detach().numpy()
 
-# indice del campione
-i = 0
-a, b = attrA[i], attrB[i]
-
 # Calcola disagreement *per quel campione*
-fd_i  = feature_disagreement(a, b, k=8) # k=8 è il numero di feature da considerare
-sd_i  = sign_disagreement   (a, b, k=8)
-euc_i = euclidean           (a, b)
-eua_i = euclidean_abs       (a, b)
+fd_list  = []
+sd_list  = []
+euc_list = []
+eua_list = []
+
+for a, b in zip(attrA, attrB):
+    fd_i  = feature_disagreement(a, b, k=8)
+    sd_i  = sign_disagreement   (a, b, k=8)
+    euc_i = euclidean           (a, b)
+    eua_i = euclidean_abs       (a, b)
+
+    # ora appendi i valori calcolati
+    fd_list .append(fd_i)
+    sd_list .append(sd_i)
+    euc_list.append(euc_i)
+    eua_list.append(eua_i)
+
+# media e std
+fd_mean,  fd_std  = np.mean(fd_list),  np.std(fd_list)
+sd_mean,  sd_std  = np.mean(sd_list),  np.std(sd_list)
+euc_mean, euc_std = np.mean(euc_list), np.std(euc_list)
+eua_mean, eua_std = np.mean(eua_list), np.std(eua_list)
+
+print(f"FeatureDisagreement : {fd_mean :.3f} ± {fd_std :.3f}")
+print(f"SignDisagreement    : {sd_mean :.3f} ± {sd_std :.3f}")
+print(f"Euclidean           : {euc_mean:.3f} ± {euc_std:.3f}")
+print(f"Euclidean-abs       : {eua_mean:.3f} ± {eua_std:.3f}")
 
 # 4) Calcolo delle metriche di disaccordo 
 
 import matplotlib.pyplot as plt
 
-feature_names = load_breast_cancer().feature_names
+# scegli il campione i che vuoi mostrare
+i = 0
 
+# crea la figura con 2 righe, 1 colonna
+fig, (ax_glob, ax_case) = plt.subplots(2, 1, figsize=(10, 8))
+
+# --- pannello 1: metriche globali come barre ---
+labels = ["FD", "SD", "Euc", "Eua"]
+means  = [fd_mean, sd_mean, euc_mean, eua_mean]
+stds   = [fd_std,  sd_std,  euc_std,  eua_std]
+ax_glob.bar(labels, means, yerr=stds, capsize=5, color=["C0","C1","C2","C3"])
+ax_glob.set_title("Disaccordo medio ± std su tutto il test set")
+ax_glob.set_ylabel("Valore metrica")
+
+# --- pannello 2: case study sul campione i ---
+# barre affiancate per feature
+feature_names = load_breast_cancer().feature_names
 x = np.arange(len(feature_names))
 width = 0.35
+a, b = attrA[i], attrB[i]
+ax_case.bar(x - width/2, a, width, label="Modello A")
+ax_case.bar(x + width/2, b, width, label="Modello B")
+ax_case.set_xticks(x)
+ax_case.set_xticklabels(feature_names, rotation=45, ha="right")
+ax_case.set_ylabel("Attribution IG")
+ax_case.set_title(f"Attributions confronto campione {i}  |  "
+                  f"FD={fd_list[i]:.2f} SD={sd_list[i]:.2f} "
+                  f"Euc={euc_list[i]:.2f} Eua={eua_list[i]:.2f}")
+ax_case.legend()
 
-plt.figure(figsize=(10,5))
-plt.bar(x - width/2, a, width, label="Modello A")
-plt.bar(x + width/2, b, width, label="Modello B")
-plt.xticks(x, feature_names, rotation=45, ha="right")
-plt.ylabel("Valore di attributo")
-plt.title(
-    f"Attributions confronto campione {i}\n"
-    f"FD={fd_i:.2f}  SD={sd_i:.2f}  Euc={euc_i:.2f}  Eua={eua_i:.2f}"
-)
-plt.legend()
 plt.tight_layout()
 plt.show()

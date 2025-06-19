@@ -10,9 +10,9 @@ class MLP(nn.Module):
     def __init__(self, d_in):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(d_in, 16), nn.ReLU(),
-            nn.Linear(16, 16), nn.ReLU(),
-            nn.Linear(16, 1)
+            nn.Linear(d_in, 16), nn.ReLU(),   # primo layer nascosto, 16 unità
+            nn.Linear(16, 16), nn.ReLU(),     # secondo layer nascosto, 16 unità
+            nn.Linear(16, 1)                  # output
         )
     def forward(self, x):
         return torch.sigmoid(self.net(x)).squeeze()
