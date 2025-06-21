@@ -16,7 +16,7 @@ from metrics import (
     euclidean_abs
 )
 
-# 1) Caricamento dati e preprocessing
+# Caricamento dati e preprocessing
 
 # Scarica i dati del Breast Cancer da sklearn: X = vettore di feature, y = etichette (0/1)
 X, y = load_breast_cancer(return_X_y=True)
@@ -36,7 +36,7 @@ _, X_test, _, _ = train_test_split(
 # Converte X_test in un tensore PyTorch di tipo float32
 X_test_t = torch.tensor(X_test, dtype=torch.float32)
 
-# 2) Caricamento dei modelli già addestrati
+# Caricamento dei modelli già addestrati
 
 # Istanzia due reti MLP con lo stesso numero di feature in ingresso
 modelA = MLP(X.shape[1])  
@@ -50,7 +50,7 @@ modelB.load_state_dict(torch.load("models/mlp_seed1.pt", weights_only=True))
 modelA.eval()
 modelB.eval()
 
-# 3) Generazione delle spiegazioni con Integrated Gradients
+# Generazione delle spiegazioni con Integrated Gradients
 
 # Crea gli oggetti explainer per ciascun modello
 igA = IntegratedGradients(modelA)
@@ -95,7 +95,7 @@ print(f"SignDisagreement    : {sd_mean :.3f} ± {sd_std :.3f}")
 print(f"Euclidean           : {euc_mean:.3f} ± {euc_std:.3f}")
 print(f"Euclidean-abs       : {eua_mean:.3f} ± {eua_std:.3f}")
 
-# 4) Calcolo delle metriche di disaccordo 
+# Calcolo delle metriche di disaccordo 
 
 import matplotlib.pyplot as plt
 
@@ -105,13 +105,30 @@ i = 0
 # crea la figura con 2 righe, 1 colonna
 fig, (ax_glob, ax_case) = plt.subplots(2, 1, figsize=(10, 8))
 
-# --- pannello 1: metriche globali come barre ---
+# bar-plot delle metrcihe globali
+
 labels = ["FD", "SD", "Euc", "Eua"]
 means  = [fd_mean, sd_mean, euc_mean, eua_mean]
 stds   = [fd_std,  sd_std,  euc_std,  eua_std]
 ax_glob.bar(labels, means, yerr=stds, capsize=5, color=["C0","C1","C2","C3"])
 ax_glob.set_title("Disaccordo medio ± std su tutto il test set")
 ax_glob.set_ylabel("Valore metrica")
+
+# box-plot delle metriche globali
+# data   = [fd_list, sd_list, euc_list, eua_list]
+# tick_labels = ["FD", "SD", "Euc", "Eua"]
+
+#ax_glob.boxplot(
+#    data,
+#    labels=labels,
+#    showfliers=True,    # mostra gli outlier come puntini
+#    patch_artist=True,  # colora le scatole
+#    boxprops=dict(facecolor="lightgray", color="black"),
+#    whiskerprops=dict(color="black"),
+#    medianprops=dict(color="red")
+#)
+#ax_glob.set_title("Distribuzione delle metriche di disaccordo\nsu tutto il test set")
+#ax_glob.set_ylabel("Valore metrica")
 
 # --- pannello 2: case study sul campione i ---
 # barre affiancate per feature
