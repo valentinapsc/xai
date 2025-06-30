@@ -4,7 +4,6 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{geometry}
-\usepackage{amssymb}
 \geometry{margin=2.5cm}
 
 \title{Documentazione della Pipeline Immagini \\ \texttt{xai\_img}}
@@ -13,82 +12,108 @@
 \maketitle
 
 \section*{1. Contesto}
-è stata implementata una pipeline per analizzare il \emph{Disagreement Problem} su spiegazioni visuali: si confrontano due mappe di salienza generate dallo stesso modello (o da modelli diversi) su una medesima immagine, quantificando la loro divergenza con quattro metriche.
+Lo scopo principale di questa pipeline è confrontare visivamente e quantitativamente le spiegazioni generate da due diversi metodi di interpretabilità su immagini analizzate da modelli di machine learning. Nello specifico, si vogliono identificare e quantificare eventuali differenze significative (\emph{Disagreement Problem}) tra le regioni dell'immagine che i diversi metodi considerano più importanti per la decisione del modello.
+
+In pratica, dati:
+\begin{itemize}
+\item una rete neurale pre-addestrata (ResNet-18);
+\item una singola immagine ( in questo caso la foto di un gatto);
+\item due metodi di interpretazione (Integrated Gradients e Saliency);
+\end{itemize}
+la pipeline produce due mappe di salienza, che rappresentano visivamente le zone dell'immagine considerate determinanti per la classificazione. Successivamente, confronta queste mappe usando metriche numeriche per stabilire se e quanto queste spiegazioni divergano tra loro.
+
+Questo confronto aiuta a comprendere se metodi diversi offrono una visione coerente o se, al contrario, identificano regioni diverse come importanti, generando potenziale confusione o difficoltà nell'interpretazione delle decisioni del modello.
 
 \section*{2. Tecnologie e librerie}
-È stato utilizzato Python 3.10 in ambiente \texttt{conda (xai)}, con:
+È stato utilizzato Python 3.10 in ambiente \texttt{anaconda (xai)}, con:
 \begin{itemize}
-  \item \textbf{PyTorch} e \textbf{torchvision} per il caricamento di una rete pre‐addestrata (ResNet-18);
-  \item \textbf{Captum} per i metodi di interpretazione Integrated Gradients e Saliency;
-  \item \textbf{scikit-image} per il caricamento e la segmentazione SLIC in super‐pixel;
-  \item \textbf{NumPy} per la manipolazione delle mappe di salienza;
-  \item \textbf{Matplotlib} per la visualizzazione finale delle heat‐map.
+\item \textbf{PyTorch} e \textbf{torchvision} per il caricamento della rete pre-addestrata;
+\item \textbf{Captum} per i metodi di interpretazione;
+\item \textbf{scikit-image} per la segmentazione in super-pixel;
+\item \textbf{NumPy} per la gestione delle mappe di salienza;
+\item \textbf{Matplotlib} per la visualizzazione grafica dei risultati.
 \end{itemize}
 
 \section*{3. Metodi di interpretazione}
+I metodi di interpretazione sono tecniche che ci permettono di capire "perché" un modello di intelligenza artificiale ha preso una certa decisione. In questo caso, lavoriamo con immagini e vogliamo sapere quali zone dell'immagine hanno influenzato maggiormente la classificazione del modello.
+
 \subsection*{3.1 Integrated Gradients (IG)}
-Integrated Gradients è un explainer che stima l’importanza di ciascun pixel (o feature) calcolando l’integrale del gradiente lungo un percorso che va da un \emph{baseline} (un’immagine nera) all’input reale.  
-In pratica:
-\begin{enumerate}
-  \item si definisce un \emph{baseline} $x'\,$ (vettore di zeri);
-  \item si suddivide il segmento $[x',x]$ in $m$ passi e si calcolano i gradienti in punti intermedi;
-  \item si sommano i gradienti e si moltiplica per la variazione $x - x'$ per ottenere un valore di attributo per ciascun pixel.
-\end{enumerate}
-Aumentando $m$ (\texttt{n\_steps}) l’approssimazione diventa più fedele all’integrale continuo ma aumenta il costo computazionale. (se non viene passato \texttt{n\_steps}, Captum userà \texttt{n\_steps = 50} di default)
+Integrated Gradients è un metodo che cerca di spiegare l'importanza di ciascun pixel di un'immagine. Funziona così:
+\begin{itemize}
+\item si parte da un'immagine completamente nera (nessuna informazione);
+\item si calcola gradualmente quanto ogni pixel dell'immagine reale cambia il risultato del modello mentre "si accende" (cioè mentre passa da nero al suo valore reale);
+\item si sommano tutti questi piccoli cambiamenti per ogni pixel.
+\end{itemize}
+Il risultato è una mappa in cui ogni pixel ha un valore che indica quanto ha influenzato la decisione.
+
+Più è alto il numero di passi (\texttt{n\_steps}), più precisa è la stima, ma il calcolo richiede più tempo.
 
 \subsection*{3.2 Saliency (gradiente puro)}
-Il metodo \emph{Saliency} è la forma più semplice di explainability basata sul gradiente: 
-si calcola il gradiente dell’output di interesse rispetto all’input, pixel per pixel.  
-Il valore assoluto di questo gradiente indica quanto la predizione cambierebbe modificando lievemente quel pixel.  
-Rispetto a IG, Saliency:
+Saliency è un metodo molto più semplice. Calcola direttamente quanto la predizione del modello cambierebbe se modificassimo leggermente ogni singolo pixel. Più il cambiamento è grande, più quel pixel è importante.
+
+Differenze principali rispetto a IG:
 \begin{itemize}
-  \item è istantaneo (un solo backward pass);
-  \item tende ad essere più “rumoroso”;
-  \item non richiede un \emph{baseline} né parametri aggiuntivi.
+\item \textbf{Veloce}: richiede un solo calcolo;
+\item \textbf{Rumoroso}: spesso mette in evidenza molti pixel sparsi, anche se non sono realmente importanti;
+\item \textbf{Non richiede baseline}: non parte da un'immagine nera.
 \end{itemize}
+
 
 \section*{4. Flusso di lavoro}
-La pipeline si articola in due fasi: generazione delle mappe di salienza e confronto quantitativo e visivo.
+La pipeline è suddivisa in due fasi principali: creazione delle mappe e confronto tra di esse.
 
-\subsection*{4.1 Generazione delle mappe (\texttt{make\_maps.py})}
+\subsection*{4.1 Creazione delle mappe (\texttt{make\_maps.py})}
+Questa fase genera due mappe di salienza, una con Integrated Gradients e una con Saliency:
+
 \begin{enumerate}
-  \item Caricamento di ResNet-18 con pesi ImageNet: 
-    \texttt{models.resnet18(weights=ResNet18\_Weights.DEFAULT)}.
-  \item Preprocessing dell’immagine (\texttt{cat.jpg}): resize a 224×224, conversione in tensore, normalizzazione.
-  \item Predizione della classe di riferimento: 
-    \texttt{pred = model(x).argmax()}.
-  \item Baseline: vettore di zeri di forma $(1,3,224,224)$ per IG.
-  \item Calcolo di:
-    \begin{itemize}
-      \item \texttt{IntegratedGradients.attribute(x, baselines=x*0, target=pred)} → mappa IG
-      \item \texttt{Saliency.attribute(x, target=pred)} → mappa gradiente puro
-    \end{itemize}
-  \item Salvataggio in \texttt{.npy}: \texttt{saliency\_A.npy}, \texttt{saliency\_B.npy}.
+\item \textbf{Caricamento modello}: si utilizza ResNet-18 pre-addestrata su ImageNet.
+\item \textbf{Caricamento immagine}: l'immagine (es. \texttt{cat.jpg}) viene ridimensionata a 224x224, convertita in tensore e normalizzata secondo lo standard del modello.
+\item \textbf{Integrated Gradients}:
+\begin{itemize}
+\item si definisce una baseline nera (immagine completamente vuota);
+\item si calcola l'importanza di ogni pixel seguendo il metodo IG;
+\item si somma sui canali e si salva la mappa come \texttt{saliency\_A.npy}.
+\end{itemize}
+\item \textbf{Saliency (gradiente puro)}:
+\begin{itemize}
+\item si calcola direttamente il gradiente rispetto all'immagine;
+\item si somma sui canali e si salva la mappa come \texttt{saliency\_B.npy}.
+\end{itemize}
 \end{enumerate}
 
+Alla fine, il file stampa:
+\begin{verbatim}
+saliency_A.npy e saliency_B.npy salvati.
+\end{verbatim}
+
+Questi due file contengono le mappe da confrontare nella fase successiva.
+
 \subsection*{4.2 Confronto delle mappe (\texttt{compare\_saliency.py})}
-\paragraph{Ridimensionamento}
-L’immagine originale viene riportata alle dimensioni delle mappe caricate.
+Questa fase serve a confrontare quantitativamente le due mappe generate, per capire se evidenziano le stesse regioni dell'immagine oppure no.
 
-\paragraph{Super‐pixel}
-Si applica SLIC con $N_{\text{segments}}=200$ per aggregare pixel in blocchi omogenei, ottenendo $n_{\text{sp}}$ super‐pixel.
+\begin{enumerate}
+\item \textbf{Caricamento delle mappe e immagine}: le due mappe salvate vengono caricate. L'immagine originale viene ridimensionata per avere la stessa dimensione delle mappe.
 
-\paragraph{Vettori di salienza}
-Per ogni super‐pixel si calcola la media della salienza:
-\[
-v_i = \frac{1}{|S_i|} \sum_{(x,y)\in S_i} \text{saliency}(x,y),
-\]
-da cui si ottengono due vettori $\mathbf v^{(A)}, \mathbf v^{(B)}\in\mathbb R^{n_{\text{sp}}}$.
+\item \textbf{Segmentazione in super-pixel (SLIC)}:
+L'immagine viene divisa in 200 "super-pixel" tramite l'algoritmo SLIC, cioè piccoli blocchi omogenei di pixel simili. Ogni blocco avrà un'etichetta diversa.
 
-\paragraph{Metriche di disaccordo}
-Si applicano:
+\item \textbf{Creazione dei vettori di salienza}: per ciascun super-pixel si calcola la media dei valori di salienza. Si ottengono così due vettori (uno per ogni mappa), che rappresentano l'importanza media di ciascun blocco.
+
+\item \textbf{Metriche di confronto}:
+Si calcolano quattro misure che quantificano il disaccordo tra i due vettori:
 \begin{itemize}
-  \item \emph{Feature Disagreement}: $1 - \frac{|\mathrm{Top}_k(\mathbf v^{(A)})\cap\mathrm{Top}_k(\mathbf v^{(B)})|}{k}$;
-  \item \emph{Sign Disagreement}: penalizza differenze di segno;
-  \item \emph{Euclidean}: distanza $L_2$ tra vettori normalizzati;
-  \item \emph{Euclidean‐abs}: distanza $L_2$ tra moduli normalizzati.
+\item \textbf{FeatureDisagreement}: misura quanta sovrapposizione c'è tra i blocchi più importanti nelle due mappe.
+\item \textbf{SignDisagreement}: come sopra, ma tiene conto anche del segno (positivo o negativo).
+\item \textbf{Euclidean}: distanza globale tra i due vettori (con segno).
+\item \textbf{Euclidean-abs}: distanza globale tra i due vettori, ignorando il segno.
 \end{itemize}
-Impostata $K_{\text{FRAC}}=0.05 \implies k=0.05\,n_{\text{sp}}$.
+Il parametro \texttt{K\_FRAC = 0.05} indica che si considera il top 5\% dei super-pixel più importanti.
+
+\item \textbf{Visualizzazione}:
+Viene creato un overlay che mostra l'immagine originale affiancata dalle due mappe colorate. I colori indicano l'importanza: rosso = alta, blu = bassa.
+\end{enumerate}
+
+Il programma stampa a video i quattro valori numerici delle metriche e mostra graficamente le differenze tra le due spiegazioni.
 
 \section*{5. Risultati}
 Eseguendo:
