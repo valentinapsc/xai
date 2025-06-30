@@ -166,4 +166,15 @@ Visivamente, IG ha evidenziato una zona ampia e sfumata (al centro del manto), m
 
 Due explainers, applicati allo stesso modello e alla stessa immagine, raccontano storie molto diverse su quali pixel abbiano spinto la predizione.
 
+\section*{Glossario}
+
+\begin{itemize}
+  \item \textbf{Salienza (saliency map)}: immagine che mostra quali parti dell’immagine originale hanno contato di più nella decisione del modello.
+  \item \textbf{Gradiente}: misura di quanto cambierebbe il risultato del modello se modificassi appena il valore di un pixel (quanto “sensibile” è il modello a quel pixel).
+  \item \textbf{Integrated Gradients}: tecnica che valuta l’importanza di ogni pixel sommando il contributo dei gradienti mentre l’immagine passa da vuota a reale.
+  \item \textbf{Super-pixel}: gruppi di pixel simili tra loro, trattati come blocchi per semplificare il confronto tra mappe.
+  \item \textbf{Heatmap}: rappresentazione visiva con colori, dove ad esempio il rosso mostra le zone importanti e il blu quelle meno importanti.
+\end{itemize}
+
+
 \end{document}

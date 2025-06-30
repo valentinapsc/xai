@@ -15,7 +15,7 @@
 Per analizzare il \emph{Disagreement Problem}, che consiste nel comprendere perché due modelli simili possano fornire spiegazioni differenti pur ottenendo risultati comparabili, è stato scelto il dataset Breast–Cancer Wisconsin. Questo dataset contiene informazioni mediche tabellari relative a 569 pazienti, descritte tramite 30 caratteristiche numeriche. Sono stati addestrati due modelli identici nella struttura (reti neurali MLP con gli stessi strati e neuroni) ma inizializzati con seed diversi, generando quindi minime variazioni nelle loro configurazioni iniziali. L'obiettivo finale è quantificare e comprendere quanto le attribuzioni delle feature, ovvero le spiegazioni di come ogni caratteristica influenzi le predizioni, divergano tra i due modelli.
 
 \section*{2. Tecnologie e librerie}
-La pipeline è stata implementata in Python 3.10 utilizzando un ambiente virtuale \texttt{conda} chiamato \texttt{xai}. Le librerie scelte sono state selezionate per i seguenti motivi:
+La pipeline è stata implementata in Python 3.10 utilizzando un ambiente virtuale \texttt{anaconda} chiamato \texttt{xai}. Le librerie scelte sono state selezionate per i seguenti motivi:
 \begin{itemize}
 \item \textbf{PyTorch}: per creare e addestrare reti neurali efficienti e flessibili.
 \item \textbf{scikit-learn}: per il preprocessing robusto e testato dei dati.
@@ -40,13 +40,13 @@ Per osservare come piccoli cambiamenti possano influenzare le predizioni, vengon
 
 In questa fase, si parte dai dati di test precedentemente preparati, trasformandoli in una struttura specifica chiamata \emph{tensore}, utilizzata da PyTorch per eseguire rapidamente calcoli complessi.
 
-I due modelli addestrati vengono caricati e posti in modalità di valutazione (\texttt{eval()}), che disattiva comportamenti specifici del training come il dropout, rendendo le predizioni stabili e coerenti.
+I due modelli addestrati vengono caricati e posti in modalità di valutazione (\texttt{eval()}) rendendo le predizioni stabili e coerenti.
 
 Per generare le spiegazioni, si utilizza la tecnica \emph{Integrated Gradients}, che misura l'importanza delle caratteristiche confrontando la predizione del modello con un punto di riferimento detto \emph{baseline}, scelto in questo caso come un vettore di zeri, rappresentante una situazione neutrale.
 
 L'integrazione avviene in 50 passi (\texttt{n\_steps = 50}), un compromesso ideale tra accuratezza della spiegazione e costo computazionale.
 
-Le attribuzioni ottenute, ovvero le spiegazioni che indicano quanto ciascuna caratteristica influenzi la previsione finale, vengono trasformate in semplici vettori numerici NumPy per facilitare le analisi successive..
+Le attribuzioni ottenute, ovvero le spiegazioni che indicano quanto ciascuna caratteristica influenzi la previsione finale, vengono trasformate in semplici vettori numerici NumPy per facilitare le analisi successive.
 
 \paragraph{Passi di integrazione (\texttt{n\_steps})}
 Integrated Gradients misura l'importanza delle caratteristiche considerando il cambiamento della predizione del modello da un punto di partenza neutro (baseline) fino al campione reale analizzato. Questo calcolo avviene tramite una approssimazione matematica chiamata \emph{somma di Riemann}, che divide il percorso tra baseline e campione reale in un certo numero di intervalli più piccoli (chiamati \emph{passi di integrazione}). Più passi si utilizzano, più precisa e stabile risulta la spiegazione, anche se aumenta il tempo necessario per il calcolo. In questa analisi, sono stati scelti 50 passi.
@@ -90,15 +90,15 @@ si ottengono:
   \centering
   \includegraphics[width=0.8\textwidth]{globali.png}
   \caption{Bar-plot delle metriche di disaccordo medie $\pm$ std sul test set.}
-  \label{fig:globali.png}
+  \label{fig:global_vs_case}
 \end{figure}
 
 Il bar‐plot sintetizza le quattro metriche di disaccordo su tutto il test set:
 \begin{itemize}
-  \item \textbf{Feature Disagreement (FD)}: con media $\approx0.29$ e deviazione standard $\approx0.13$, indica che in media il 71\% delle top‐8 feature è condiviso tra i due modelli, con alcuni casi in cui il disaccordo supera il 40\%.
-  \item \textbf{Sign Disagreement (SD)}: media $\approx0.30$, segnala che non solo cambiano le feature selezionate, ma in quasi un terzo dei casi si inverte anche il segno dell’attribuzione, ossia il “verso” dell’influenza.
-  \item \textbf{Euclidean}: distanza L$_2$ media $\approx0.43$, con std $\approx0.13$, mostra una divergenza complessiva moderata nei vettori normalizzati di attributi.
-  \item \textbf{Euclidean‐abs}: media $\approx0.37$, dimostra che buona parte della differenza è dovuta all’intensità delle importanze, ma che il segno amplifica ulteriormente il disaccordo complessivo.
+    \item \textbf{Feature Disagreement (FD)}: in media, circa il 71\% delle 8 feature più importanti è d’accordo tra i due modelli, ma a volte il disaccordo è maggiore (anche oltre il 40\%).
+    \item \textbf{Sign Disagreement (SD)}: circa il 30\% delle volte, anche il segno dell’influenza cambia (es: una feature spinge verso benigno in un modello, ma verso maligno nell’altro).
+    \item \textbf{Euclidean}: questa distanza media (0.43) indica che le spiegazioni sono abbastanza simili, ma non identiche.
+    \item \textbf{Euclidean-abs}: simile a prima, ma guarda solo quanto “pesano” le caratteristiche, non il segno.
 \end{itemize}
 
 Questa sintesi conferma che, sebbene i due modelli abbiano prestazioni quasi identiche sul test set, le spiegazioni possono variare in modo consistente.
@@ -117,7 +117,7 @@ Nella seconda parte della figura~\ref{fig:global_vs_case}, vengono mostrate le e
   \centering
   \includegraphics[width=0.8\textwidth]{campione zero.png}
   \caption{Confronto delle attribuzioni IG per il campione 0.}
-  \label{fig:campione_zero.png}
+  \label{fig:global_vs_case}
 \end{figure}
 
 \subsection*{Cosa mostrano le barre}
@@ -138,7 +138,7 @@ Confrontando Modello A vs. Modello B si evidenzia dove e quanto i due modelli di
 \item \textbf{Tensore}: Struttura dati multidimensionale utilizzata per calcoli efficienti con PyTorch.
 \item \textbf{Integrated Gradients}: Metodo di Explainable AI che misura l'importanza delle feature rispetto a un punto di riferimento (baseline).
 \item \textbf{Standardizzazione}: Processo di trasformazione dei dati per avere media 0 e deviazione standard 1.
-\item \textbf{Stratificazione}: Divisione dei dati mantenendo le proporzioni originali delle classi.
+\item \textbf{Stratificazione}: Divisione dei dati mantenendo le proporzioni originali delle classi ( in questo caso in entrambe le parti ci si assicura che ci sia la stessa proporzione di tumori benigni/maligni).
 \item \textbf{Feature Disagreement}: Metrica che misura le differenze nelle caratteristiche selezionate come più importanti.
 \item \textbf{Sign Disagreement}: Metrica che valuta le differenze nel segno attribuito all'importanza delle caratteristiche.
 \item \textbf{Euclidean e Euclidean-abs}: Metriche basate sulla distanza matematica tra vettori di attribuzione.
