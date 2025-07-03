@@ -32,7 +32,7 @@ Il processo di training inizia caricando il dataset Breast–Cancer tramite la f
 
 Successivamente, il dataset viene diviso in due parti: una di training (80\%) e una di test (20\%). La divisione viene fatta con stratificazione per assicurare che la proporzione tra le classi sia mantenuta uguale in entrambe le parti, così da avere risultati più affidabili.
 
-I modelli utilizzati sono semplici reti neurali artificiali (MLP) con due strati nascosti, ciascuno di 16 neuroni. Questa configurazione bilancia la capacità del modello di apprendere caratteristiche complesse dei dati senza esagerare nella complessità, evitando così fenomeni di sovra-adattamento (overfitting).
+I modelli utilizzati sono semplici reti neurali artificiali (MLP) con due strati nascosti, ciascuno di 16 neuroni. Questa configurazione permette al modello di apprendere caratteristiche complesse e, al contempo, di mantenere una struttura efficiente, evitando così un'eccessiva complessità che potrebbe causare fenomeni di sovra-adattamento (overfitting).
 
 Per osservare come piccoli cambiamenti possano influenzare le predizioni, vengono addestrati due modelli con la stessa struttura ma inizializzati con semi casuali diversi (seed 0 e seed 1). Infine, i modelli addestrati vengono salvati per essere riutilizzati in seguito (\texttt{models/mlp\_seed0.pt} e \texttt{models/mlp\_seed1.pt}).
 
@@ -42,7 +42,7 @@ In questa fase, si parte dai dati di test precedentemente preparati, trasformand
 
 I due modelli addestrati vengono caricati e posti in modalità di valutazione (\texttt{eval()}) rendendo le predizioni stabili e coerenti.
 
-Per generare le spiegazioni, si utilizza la tecnica \emph{Integrated Gradients}, che misura l'importanza delle caratteristiche confrontando la predizione del modello con un punto di riferimento detto \emph{baseline}, scelto in questo caso come un vettore di zeri, rappresentante una situazione neutrale.
+Per generare le spiegazioni, si utilizza la tecnica \emph{Integrated Gradients}, che misura l'importanza delle caratteristiche confrontando la predizione del modello con un punto di riferimento detto \emph{baseline}, costituito da un vettore di zeri, rappresentante una situazione neutrale.
 
 L'integrazione avviene in 50 passi (\texttt{n\_steps = 50}), un compromesso ideale tra accuratezza della spiegazione e costo computazionale.
 
@@ -52,7 +52,7 @@ Le attribuzioni ottenute, ovvero le spiegazioni che indicano quanto ciascuna car
 Integrated Gradients misura l'importanza delle caratteristiche considerando il cambiamento della predizione del modello da un punto di partenza neutro (baseline) fino al campione reale analizzato. Questo calcolo avviene tramite una approssimazione matematica chiamata \emph{somma di Riemann}, che divide il percorso tra baseline e campione reale in un certo numero di intervalli più piccoli (chiamati \emph{passi di integrazione}). Più passi si utilizzano, più precisa e stabile risulta la spiegazione, anche se aumenta il tempo necessario per il calcolo. In questa analisi, sono stati scelti 50 passi.
 
 \paragraph{Calcolo delle attribuzioni}
-Le spiegazioni vengono calcolate creando un oggetto \texttt{IntegratedGradients} per ciascun modello e invocando il metodo \texttt{attribute}. Questo metodo restituisce un tensore (struttura dati) contenente i valori numerici delle attribuzioni per ciascun campione e caratteristica. Questi tensori vengono poi convertiti in vettori NumPy, più semplici da utilizzare nelle analisi successive.
+Le attribuzioni vengono calcolate creando un oggetto \texttt{IntegratedGradients} per ciascun modello e invocando il metodo \texttt{attribute}. Questo metodo restituisce un tensore (struttura dati) contenente i valori numerici delle attribuzioni per ciascun campione e caratteristica. Questi tensori vengono poi convertiti in vettori NumPy, più semplici da utilizzare nelle analisi successive.
 
 \subsection*{3.3 Calcolo delle metriche di disaccordo (\texttt{metrics.py})}
 Questa fase si occupa di calcolare quanto le spiegazioni differiscono tra i due modelli. Le metriche implementate sono:
@@ -95,17 +95,17 @@ si ottengono:
 
 Il bar‐plot sintetizza le quattro metriche di disaccordo su tutto il test set:
 \begin{itemize}
-    \item \textbf{Feature Disagreement (FD)}: in media, circa il 71\% delle 8 feature più importanti è d’accordo tra i due modelli, ma a volte il disaccordo è maggiore (anche oltre il 40\%).
-    \item \textbf{Sign Disagreement (SD)}: circa il 30\% delle volte, anche il segno dell’influenza cambia (es: una feature spinge verso benigno in un modello, ma verso maligno nell’altro).
-    \item \textbf{Euclidean}: questa distanza media (0.43) indica che le spiegazioni sono abbastanza simili, ma non identiche.
-    \item \textbf{Euclidean-abs}: simile a prima, ma guarda solo quanto “pesano” le caratteristiche, non il segno.
+    \item \textbf{Feature Disagreement (FD)}: in media i due modelli concordano su circa il 71\% delle 8 feature più importanti, ma alcune volte il disaccordo è maggiore (anche oltre il 40\%).
+    \item \textbf{Sign Disagreement (SD)}: il segno dell'influenza cambia circa il 30\% delle volte (es: una feature spinge verso benigno in un modello, ma verso maligno nell’altro).
+    \item \textbf{Euclidean}: la distanza media (0.43) indica che le spiegazioni sono abbastanza simili, ma non identiche.
+    \item \textbf{Euclidean-abs}: simile alla distanza euclidea, ma prende in considerazione solo l'importanza delle caratteristiche, non il segno.
 \end{itemize}
 
 Questa sintesi conferma che, sebbene i due modelli abbiano prestazioni quasi identiche sul test set, le spiegazioni possono variare in modo consistente.
 
 
 \section*{5. Case study su campione 0}
-Nella seconda parte della figura~\ref{fig:global_vs_case}, vengono mostrate le explanation per il campione 0. I valori delle metriche per questo singolo esempio sono:
+Nella seconda parte della figura~\ref{fig:global_vs_case}, vengono mostrate le spiegazioni riferite al campione 0. I valori delle metriche precedentemente introdotte, considerato questo singolo esempio, sono:
 \[
 \text{FD}_0 = 0.25,\quad
 \text{SD}_0 = 0.25,\quad
@@ -120,14 +120,14 @@ Nella seconda parte della figura~\ref{fig:global_vs_case}, vengono mostrate le e
   \label{fig:global_vs_case}
 \end{figure}
 
-\subsection*{Cosa mostrano le barre}
+\subsection*{Interpretazione dell'istogramma}
 Ogni coppia di barre (blu + arancio) corrisponde a una feature del dataset Breast–Cancer (sull’asse orizzontale). 
 L’altezza di ciascuna barra è il valore di attribuzione:
 \begin{itemize}
   \item positivo $\to$ feature che "spinge" la rete verso la classe positiva (maligno);
   \item negativo $\to$ feature che "spinge" verso la classe negativa (benigno).
 \end{itemize}
-Confrontando Modello A vs. Modello B si evidenzia dove e quanto i due modelli differiscono nell'attribuire importanza.
+Confrontando Modello A vs. Modello B si evidenzia dove e quanto i due modelli differiscono nell'attribuire importanza alle feature corrispondenti.
 
 \section{Glossario}
 \begin{itemize}

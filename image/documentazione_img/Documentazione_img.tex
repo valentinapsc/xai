@@ -12,17 +12,17 @@
 \maketitle
 
 \section*{1. Contesto}
-Lo scopo principale di questa pipeline è confrontare visivamente e quantitativamente le spiegazioni generate da due diversi metodi di interpretabilità su immagini analizzate da modelli di machine learning. Nello specifico, si vogliono identificare e quantificare eventuali differenze significative (\emph{Disagreement Problem}) tra le regioni dell'immagine che i diversi metodi considerano più importanti per la decisione del modello.
+Lo scopo principale di questa pipeline è confrontare visivamente e quantitativamente le spiegazioni generate da due diversi metodi di interpretazione su immagini analizzate da modelli di machine learning. Nello specifico, considerata una determinata immagine, verranno identificate e quantificate le differenze significative (\emph{Disagreement Problem}) nell'attribuzione di importanza a differenti regioni della stessa immagine, influenzando così la decisione finale del modello.
 
-In pratica, dati:
+In pratica, dati i seguenti:
 \begin{itemize}
 \item una rete neurale pre-addestrata (ResNet-18);
 \item una singola immagine ( in questo caso la foto di un gatto);
 \item due metodi di interpretazione (Integrated Gradients e Saliency);
 \end{itemize}
-la pipeline produce due mappe di salienza, che rappresentano visivamente le zone dell'immagine considerate determinanti per la classificazione. Successivamente, confronta queste mappe usando metriche numeriche per stabilire se e quanto queste spiegazioni divergano tra loro.
+la pipeline produrrà due mappe di salienza, che rappresentano visivamente le zone dell'immagine considerate determinanti per la decisione finale. Successivamente, queste mappe verranno confrontate utilizzando metriche numeriche per stabilire se le corrispettive spiegazioni divergono, e, nel caso, quatificare le differenze.
 
-Questo confronto aiuta a comprendere se metodi diversi offrono una visione coerente o se, al contrario, identificano regioni diverse come importanti, generando potenziale confusione o difficoltà nell'interpretazione delle decisioni del modello.
+Questo confronto evidenzia come l'utilizzo di metodi di valutazione differenti potrebbero portare sia a considerare significative le regioni dell'immagine simili per posizione, oppure identificare regioni completamente diverse, generando così confusione o difficoltà nell'interpretazione delle decisioni da parte del modello.
 
 \section*{2. Tecnologie e librerie}
 È stato utilizzato Python 3.10 in ambiente \texttt{anaconda (xai)}, con:
@@ -35,13 +35,13 @@ Questo confronto aiuta a comprendere se metodi diversi offrono una visione coere
 \end{itemize}
 
 \section*{3. Metodi di interpretazione}
-I metodi di interpretazione sono tecniche che ci permettono di capire "perché" un modello di intelligenza artificiale ha preso una certa decisione. In questo caso, lavoriamo con immagini e vogliamo sapere quali zone dell'immagine hanno influenzato maggiormente la classificazione del modello.
+I metodi di interpretazione sono tecniche che permettono di comprendere le motivazioni per le quali un modello di intelligenza artificiale ha preso una certa decisione. In questo caso, si utilizzano due metodi:
 
 \subsection*{3.1 Integrated Gradients (IG)}
 Integrated Gradients è un metodo che cerca di spiegare l'importanza di ciascun pixel di un'immagine. Funziona così:
 \begin{itemize}
-\item si parte da un'immagine completamente nera (nessuna informazione);
-\item si calcola gradualmente quanto ogni pixel dell'immagine reale cambia il risultato del modello mentre "si accende" (cioè mentre passa da nero al suo valore reale);
+\item si parte da un'immagine completamente nera ( per indicare l'assenza di informazioni);
+\item si calcola gradualmente quanto ogni pixel dell'immagine reale cambia il risultato del modello mentre "si accende" (vale a dire mentre passa da nero al suo valore reale);
 \item si sommano tutti questi piccoli cambiamenti per ogni pixel.
 \end{itemize}
 Il risultato è una mappa in cui ogni pixel ha un valore che indica quanto ha influenzato la decisione.
@@ -63,16 +63,16 @@ Differenze principali rispetto a IG:
 La pipeline è suddivisa in due fasi principali: creazione delle mappe e confronto tra di esse.
 
 \subsection*{4.1 Creazione delle mappe (\texttt{make\_maps.py})}
-Questa fase genera due mappe di salienza, una con Integrated Gradients e una con Saliency:
+Questa fase genera due mappe di salienza, una derivata da Integrated Gradients e una da Saliency, si suddividein:
 
 \begin{enumerate}
 \item \textbf{Caricamento modello}: si utilizza ResNet-18 pre-addestrata su ImageNet.
-\item \textbf{Caricamento immagine}: l'immagine (es. \texttt{cat.jpg}) viene ridimensionata a 224x224, convertita in tensore e normalizzata secondo lo standard del modello.
+\item \textbf{Caricamento immagine}: l'immagine (in questo caso \texttt{cat.jpg}) viene ridimensionata a 224x224, convertita in tensore e normalizzata secondo lo standard del modello.
 \item \textbf{Integrated Gradients}:
 \begin{itemize}
-\item si definisce una baseline nera (immagine completamente vuota);
+\item si definisce una baseline (immagine vuota);
 \item si calcola l'importanza di ogni pixel seguendo il metodo IG;
-\item si somma sui canali e si salva la mappa come \texttt{saliency\_A.npy}.
+\item si somma sui canali, cioè una dimensione dell'immagine che rappresenta un colore specifico, come rosso, verde o blu; in questo caso, l'immagine ha 3 canali per i colori RGB, infine si salva la mappa come \texttt{saliency\_A.npy}.
 \end{itemize}
 \item \textbf{Saliency (gradiente puro)}:
 \begin{itemize}
@@ -103,11 +103,11 @@ L'immagine viene divisa in 200 "super-pixel" tramite l'algoritmo SLIC, cioè pic
 Si calcolano quattro misure che quantificano il disaccordo tra i due vettori:
 \begin{itemize}
 \item \textbf{FeatureDisagreement}: misura quanta sovrapposizione c'è tra i blocchi più importanti nelle due mappe.
-\item \textbf{SignDisagreement}: come sopra, ma tiene conto anche del segno (positivo o negativo).
+\item \textbf{SignDisagreement}: come il Feature Disagreement, ma tiene conto anche del segno.
 \item \textbf{Euclidean}: distanza globale tra i due vettori (con segno).
 \item \textbf{Euclidean-abs}: distanza globale tra i due vettori, ignorando il segno.
 \end{itemize}
-Il parametro \texttt{K\_FRAC = 0.05} indica che si considera il top 5\% dei super-pixel più importanti.
+Il parametro \texttt{K\_FRAC = 0.05} nel codice indica che si considera il top 5\% dei super-pixel più importanti.
 
 \item \textbf{Visualizzazione}:
 Viene creato un overlay che mostra l'immagine originale affiancata dalle due mappe colorate. I colori indicano l'importanza: rosso = alta, blu = bassa.
@@ -130,14 +130,14 @@ si ottiene:
 \text{Euclidean-abs}       &= 0.856.
 \end{aligned}
 \]
-Questi valori indicano disaccordo massimo sulle top‐5\% di super‐pixel e grande distanza globale, confermando che le due mappe (IG vs Saliency) evidenziano aree significativamente diverse.
+Questi valori indicano disaccordo massimo sulle top‐5\% di super‐pixel e grande distanza globale, confermando che le due mappe (IG e Saliency) evidenziano aree significativamente diverse.
 
 \subsection*{5.1 Interpretazione quantitativa}
 \begin{itemize}
 \item \textbf{FeatureDisagreement = 1.000}: fra i super‐pixel “top‐k” scelti da saliency A e quelli scelti da saliency B, non c’è alcuna sovrapposizione (100\% di disaccordo).
 \item \textbf{SignDisagreement = 1.000}: anche considerando il segno dell’attribuzione (positivo vs negativo), non c’è alcuna corrispondenza nelle stesse regioni.
-\item \textbf{Euclidean $\approx$ 1.417}: misura “globale” di distanza $L_2$ fra le due distribuzioni di saliency (vettori normalizzati): quindi le due mappe sono molto diverse.
-\item \textbf{Euclidean‐abs $\approx$ 0.856}: stessa distanza ma ignorando il segno: resta elevata, il che conferma che anche le intensità “in assoluto” sono molto differenti.
+\item \textbf{Euclidean $\approx$ 1.417}: misura “globale” di distanza fra le due distribuzioni di saliency (vettori normalizzati): quindi le due mappe sono molto diverse.
+\item \textbf{Euclidean‐abs $\approx$ 0.856}: stessa distanza ma ignorando il segno: resta elevata, il che conferma che anche le intensità sono molto differenti.
 \end{itemize}
 
 \section*{6. Le tre immagini}
@@ -155,7 +155,7 @@ La foto originale (\texttt{cat.jpg}), ridimensionata a 224×224 pixel per coinci
 Overlay della mappa generata con Integrated Gradients. I colori (scala dal verde al rosso, mappati con \texttt{plt.cm.jet}) mostrano le aree che IG ritiene importanti: più una zona è “rossastra”, più pesa sulla decisione del modello. Qui emerge una colorazione diffusa, con pochissime aree calde concentrate.
 
 \subsection*{6.3 Saliency B}
-Overlay della mappa generata con il metodo Saliency (gradiente puro). Qui il colore prevalente è bluastro, con pochi puntini verde‐chiaro che indicano dove il gradiente è massimo.
+Overlay della mappa generata con il metodo Saliency (gradiente puro). Qui il colore prevalente è bluastro, con pochi punti verde‐chiaro che indicano dove il gradiente è massimo.
 
 \section*{7. Discussione sul Disagreement Problem}
 Nessuna sovrapposizione nelle aree top‐k (FeatureDisagreement = 1) → IG e gradiente puro indicano regioni completamente diverse come “più importanti”.
