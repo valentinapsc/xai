@@ -2,8 +2,8 @@
 
 ## Documentazione
 <ul>
-  <li><a href="https://github.com/valentinapsc/xai/blob/main/xai_tabular/documentazione/Documentazione_tab.pdf">Modello tabellare</a></li>
-  <li><a href="https://github.com/valentinapsc/xai/blob/main/xai_image/documentazione/Documentazione_img.pdf">Modello basato su immagini</a></li>
+  <li><a href="https://github.com/valentinapsc/xai/blob/main/xai_tabular/documentazione/Documentazione_tab.pdf" target="_blank">Modello tabellare</a></li>
+  <li><a href="https://github.com/valentinapsc/xai/blob/main/xai_image/documentazione/Documentazione_img.pdf" target="_blank">Modello basato su immagini</a></li>
 </ul>
 
 ## Esecuzione
